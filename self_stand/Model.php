@@ -14,28 +14,36 @@ class Model
         self::initModelsData();
         if(null !== $id) {
             $class = get_called_class();
-            $result = $class::findFirst([Model::_getModelsGlobalData()->$class->schema->auto_increment .'= :id', 'bind'=>['id'=>$id]]);
-            if($result) {
-                foreach($result as $k => $v) {
+            $result = $class::findFirst(
+                array(
+                    Model::_getModelsGlobalData()->$class->schema->auto_increment .'= :id',
+                    'bind'=>
+                    array(
+                        'id'=>$id,
+                    ),
+                )
+            );
+            if ($result) {
+                foreach ($result as $k => $v) {
                     $this->$k = $v;
                 }
             } else {
                 return false;
             }
         }
-        if(method_exists($this, 'initialize')) {
+        if (method_exists($this, 'initialize')) {
             $this->initialize();
         }
     }
     /**
      * hasMany()
      * */
-    public function hasMany(string $fieldHere, string $model, string $fieldThere = null) {
-        if(null === $fieldThere) {
+    public function hasMany(string $fieldHere, string $model, string $fieldThere = null)
+    {
+        if (null === $fieldThere) {
             $fieldThere = $fieldHere;
         }
-        Model::_getModelsGlobalData()
-        ->{get_called_class()}->many[$model] = array($fieldHere, $fieldThere);
+        Model::_getModelsGlobalData()->{get_called_class()}->many[$model] = array($fieldHere, $fieldThere);
     }
     public static function transaction()
     {
@@ -43,7 +51,7 @@ class Model
         Model::_getModelsGlobalData()->transation_error = false;
         self::_getDB()->beginTransaction();
     }
-    public static function commit()
+    public static function commit() : bool
     {
         Model::_getModelsGlobalData()->transation = false;
         if (Model::_getModelsGlobalData()->transation_error !== false) {
@@ -54,50 +62,54 @@ class Model
             return (bool) self::_getDB()->commit();
         }
     }
-    public function hasOne(string $fieldHere, string $model, string $fieldThere = null) {
-        if(null === $fieldThere) {
+    public function hasOne(string $fieldHere, string $model, string $fieldThere = null)
+    {
+        if (null === $fieldThere) {
             $fieldThere = $fieldHere;
         }
-        Model::_getModelsGlobalData()
-        ->{get_called_class()}->one[$model] = array($fieldHere, $fieldThere);
+        Model::_getModelsGlobalData()->{get_called_class()}->one[$model] = array($fieldHere, $fieldThere);
     }
     public static function getErrors()
     {
         return Model::$errors;
     }
-    public static function find( $array = null) {
+    public static function find( $array = null)
+    {
         $class = get_called_class();
-        if(is_numeric($array)) {
+        if (is_numeric($array)) {
             $query = "SELECT * FROM ";
             $query .= $class::getSource();
             $query .= ' WHERE '. self::_getModelsGlobalData()->$class->ai.' = '. (int) $array;
         } elseif (is_array($array)) {
             $query = "SELECT ";
-            $query .= isset($array['columns']) ? is_array($array['columns']) ? implode(',', $array['columns']) : $array['columns'] : '*';
+            $query .= isset($array['columns'])
+                ? is_array($array['columns'])
+                    ? implode(',', $array['columns'])
+                    : $array['columns']
+                : '*';
             $query .= ' FROM '. $class::getSource();
-            if(isset($array[0])) {
+            if (isset($array[0])) {
                 $query .= ' WHERE '. $array[0];
             }
-            if(isset($array['group'])) {
+            if (isset($array['group'])) {
                 $query .= ' GROUP BY '. $array['group'];
             }
-            if(isset($array['order'])) {
+            if (isset($array['order'])) {
                 $query .= ' ORDER BY '. $array['order'];
             }
-            if(isset($array['limit'])) {
+            if (isset($array['limit'])) {
                 $query .= ' LIMIT '.$array['limit'];
-            } elseif(isset($array['page'])) {
+            } elseif (isset($array['page'])) {
                 $perpage = isset($array['perpage']) ? $array['perpage'] : 50;
                 $offset = $array['page'] > 0 ? ($array['page'] - 1) * $perpage : 0;
                 $query .= " LIMIT $offset, $perpage";
             }
-            if(isset($array['bind'])) {
-
+            if (isset($array['bind'])) {
                 return $class::_query($query, $array['bind']);
             }
-        } elseif(is_string($array)) {
+        } elseif (is_string($array)) {
             $query = "SELECT * FROM ". $class::getSource() ." WHERE 1 AND $array";
-        } elseif(null === $array) {
+        } elseif (null === $array) {
             $query = "SELECT * FROM ". $class::getSource();
 
         } else {
@@ -109,47 +121,46 @@ class Model
     {
         $class = get_called_class();
         $query = "SELECT COUNT(*) count FROM ". $class::getSource();
-
-        if(is_numeric($array)) {
+        if (is_numeric($array)) {
             $query .= ' WHERE '. self::_getModelsGlobalData()->$class->ai.' = '. (int) $array;
         } elseif (is_array($array)) {
-            if(isset($array[0])) {
+            if (isset($array[0])) {
                 $query .= ' WHERE '. $array[0];
             }
-            if(isset($array['group'])) {
+            if (isset($array['group'])) {
                 $query .= ' GROUP BY '. $array['group'];
             }
-            if(isset($array['order'])) {
+            if (isset($array['order'])) {
                 $query .= ' ORDER BY '. $array['order'];
             }
-            if(isset($array['bind'])) {
+            if (isset($array['bind'])) {
                 $result = $class::_query($query, $array['bind']);
                 return isset($result[0]) ? (int) $result[0]->count : 0;
             }
-        } elseif(is_string($array)) {
+        } elseif (is_string($array)) {
             $query .= " WHERE 1 AND $array";
         }
         $result = $class::_query($query);
         return isset($result[0]) ? (int) $result[0]->count : 0;
     }
 
-    public static function findFirst($array) {
-        if(is_numeric($array)) {
+    public static function findFirst($array)
+    {
+        if (is_numeric($array)) {
             $class= get_called_class();
             if (!property_exists(Model::_getModelsGlobalData(), $class)) {
                 $tmp = new $class;
             }
             $result = $class::findFirst(
-                [
+                array(
                     Model::_getModelsGlobalData()
                         ->$class
                         ->schema
                         ->auto_increment .'= :id',
-                    'bind'=>
-                    [
+                    'bind'=> array(
                         'id'=>$array
-                    ]
-                ]
+                    ),
+                )
             );
             return $result ?: false;
         }
@@ -157,19 +168,21 @@ class Model
         $results = get_called_class()::find($array);
         return isset($results[0]) ? $results[0] : false;
     }
-    public function delete() {
+    public function delete()
+    {
         $ai =  $this->getSchema()->auto_increment;
-        if($this->$ai) {
+        if ($this->$ai) {
             $query = 'DELETE FROM '.$this->getSource().' WHERE '. $ai .' = :'.$ai;
             return Model::_query($query,array($ai => $this->$ai));
         }
     }
-    public static function _getModelsGlobalData() {
+    public static function _getModelsGlobalData()
+    {
         $class = get_called_class();
-        if(false === self::$data) {
+        if (false === self::$data) {
             self::$data = (object) array('prefix' => '');
         }
-        if(!property_exists(self::$data, $class)) {
+        if (!property_exists(self::$data, $class)) {
             self::$data->$class = (object) array(
                 'many' => array(),
                 'one' => array(),
@@ -209,34 +222,38 @@ class Model
         return;
     }
 
-    public static function _getDB() {
+    public static function _getDB()
+    {
         return Model::_getModelsGlobalData()->connection ?: false;
     }
-    public static function setPrefix($prefix = ''){
+    public static function setPrefix($prefix = '')
+    {
         Model::$pref = $prefix;
         return;
     }
-
-    public static function getSchema() {
+    public static function getSchema()
+    {
         $class = get_called_class();
-        if(isset(Model::_getModelsGlobalData()->$class->schema)) {
+        if (isset(Model::_getModelsGlobalData()->$class->schema)) {
             return Model::_getModelsGlobalData()->$class->schema;
         }
         $schema = array('columns' => array(), 'auto_increment' => false);
-        $sql = self::_getDB()->query("SELECT * FROM `information_schema`.`COLUMNS` WHERE TABLE_NAME = '". $class::getSource() ."'");
-        if($sql) {
+        $sql = self::_getDB()->query(
+            "SELECT * FROM `information_schema`.`COLUMNS` WHERE TABLE_NAME = '". $class::getSource() ."'"
+        );
+        if ($sql) {
             $result = $sql->fetchAll(\PDO::FETCH_ASSOC);
-            foreach($result as $v) {
+            foreach ($result as $v) {
                 $schema['columns'][$v['COLUMN_NAME']] = $v['DATA_TYPE'];
-                if(preg_match('/auto_increment/', $v['EXTRA'])) {
+                if (preg_match('/auto_increment/', $v['EXTRA'])) {
                     $schema['auto_increment'] = $v['COLUMN_NAME'];
                 }
             }
-            if(isset($result[0]) && false === $schema['auto_increment']) {
+            if (isset($result[0]) && false === $schema['auto_increment']) {
                 $schema['auto_increment'] = $result[0]['COLUMN_NAME'];
             }
         }
-        if(!isset(Model::_getModelsGlobalData()->$class)) {
+        if (!isset(Model::_getModelsGlobalData()->$class)) {
             Model::_getModelsGlobalData()->$class = (object) array(
                 'many' => array(),
                 'one' => array(),
@@ -249,9 +266,10 @@ class Model
         }
         return Model::_getModelsGlobalData()->$class->schema;
     }
-    public static function initModelsData() {
+    public static function initModelsData()
+    {
         $class = get_called_class();
-        if(!isset(Model::_getModelsGlobalData()->$class)) {
+        if (!isset(Model::_getModelsGlobalData()->$class)) {
             Model::_getModelsGlobalData()->$class = (object) array(
                 'many' => array(),
                 'one' => array(),
@@ -261,29 +279,38 @@ class Model
             );
         }
     }
-
-    public static function getAI() {
+    public static function getAI()
+    {
         return $this->getSchema()->auto_increment;
     }
 
-    public static function getSource() {
+    public static function getSource()
+    {
         $ex = explode('\\', get_called_class());
         $class = array_pop($ex);
         return Model::$pref.strtolower($class);
     }
-    public function save() {
+    public function save()
+    {
         $columns = $this->getSchema()->columns;
         $keys = array_keys($columns);
-        if(property_exists($this, $this->getSchema()->auto_increment) && (int) $this->{$this->getSchema()->auto_increment}){
+        if (
+            property_exists($this, $this->getSchema()->auto_increment) &&
+            (int) $this->{$this->getSchema()->auto_increment}
+        ){
             // update
             $query = array();
-            foreach($keys as $v) {
+            foreach ($keys as $v) {
                 $query[] = " $v = ?";
             }
-            $query = 'UPDATE '. $this->getSource() .' SET ' . implode(',', $query) .' WHERE '. $this->getSchema()->auto_increment .' = ?';
+            $query = 'UPDATE '.
+                $this->getSource() .' SET '
+                . implode(',', $query)
+                .' WHERE '. $this->getSchema()->auto_increment
+                .' = ?';
             $use = $this;
-            $bind = array_map(function($key) use($use){
-                if($key == 'date_update') {
+            $bind = array_map(function($key) use($use) {
+                if ($key == 'date_update') {
                     return isset($use->$key) ? $use->$key : date('Y-m-d H:i:s');
                 }
                 return isset($use->$key) ? $use->$key : null;
@@ -298,11 +325,14 @@ class Model
                 return false;
             }
 
-            if($sql->execute($bind)){
+            if ($sql->execute($bind)) {
                 return true;
             } else {
                 Model::$errors[] = $sql->errorInfo();
-                if (property_exists(Model::_getModelsGlobalData(), 'transaction') && Model::_getModelsGlobalData()->transation === true) {
+                if (
+                    property_exists(Model::_getModelsGlobalData(), 'transaction') &&
+                    Model::_getModelsGlobalData()->transation === true
+                ) {
                     Model::_getModelsGlobalData()->transation_error = true;
                 }
                 return false;
@@ -311,11 +341,11 @@ class Model
             //insert
             $query = 'INSERT INTO '. $this->getSource() .' ('.implode(',', $keys).') VALUES (?'.str_repeat(',?', count($keys)-1) .')';
             $use = $this;
-            $bind = array_map(function($key) use($use){
-                if($key == 'date_add') {
+            $bind = array_map(function($key) use($use) {
+                if ($key == 'date_add') {
                     return isset($use->$key) ? $use->$key : date('Y-m-d H:i:s');
                 }
-                if($key == 'date_update') {
+                if ($key == 'date_update') {
                     return isset($use->$key) ? $use->$key : date('Y-m-d H:i:s');
                 }
                 return isset($use->$key) ? $use->$key : null;
@@ -328,41 +358,42 @@ class Model
             ) {
                 return false;
             }
-            if($sql->execute($bind)){
+            if ($sql->execute($bind)) {
                 $this->{$this->getSchema()->auto_increment} = Model::_getDB()->lastInsertId();
                 return $this->{$this->getSchema()->auto_increment};
-            }
-            else{
+            } else {
                 Model::$errors[] = $sql->errorInfo();
                 Model::_getModelsGlobalData()->transation_error = true;
                 return false;
             }
         }
     }
-    public static function _query($query, $bind = array()) {
+    public static function _query($query, $bind = array())
+    {
         $rebind = array();
-        foreach ($bind as $k => $v){
-            if(!preg_match('/:/', $k)) {
+        foreach ($bind as $k => $v) {
+            if (!preg_match('/:/', $k)) {
                 $k = ':'.$k;
             }
             $rebind[$k] = $v;
         }
         $bind = $rebind;
         $query = self::_getDB()->prepare($query);
-
-
         $query->execute($bind);
         return $query->fetchAll(\PDO::FETCH_CLASS, get_called_class());
     }
-    public function __get($key) {
-        if(property_exists($this, $key)) {
+    public function __get($key)
+    {
+        if (property_exists($this, $key)) {
             return $this->$key;
         }
         $thisclass = get_called_class();
-        if(!isset(Model::_getModelsGlobalData()->$thisclass->many[$key]) && !isset(Model::_getModelsGlobalData()->$thisclass->one[$key])) {
+        if (
+            !isset(Model::_getModelsGlobalData()->$thisclass->many[$key]) &&
+            !isset(Model::_getModelsGlobalData()->$thisclass->one[$key])
+        ) {
             return false;
         } else {
-
             $this->$key =  $this->{"get$key"}();
             return $this->$key;
         }
@@ -370,12 +401,16 @@ class Model
     /** Twig engine template fix
      * since Twig check if property exists in class we ned to retur true if model has many or one related model
      * */
-    public function __isset($key) : bool {
-        if(isset($this->$key)) {
+    public function __isset($key) : bool
+    {
+        if (isset($this->$key)) {
             return true;
         }
         $thisclass = get_called_class();
-        if(!isset(Model::_getModelsGlobalData()->$thisclass->many[$key]) && !isset(Model::_getModelsGlobalData()->$thisclass->one[$key])) {
+        if (
+            !isset(Model::_getModelsGlobalData()->$thisclass->many[$key]) &&
+            !isset(Model::_getModelsGlobalData()->$thisclass->one[$key])
+        ) {
             return false;
         } else {
             return true;
@@ -383,46 +418,56 @@ class Model
         return false;
     }
 
-    public function __call($func, $args) {
+    public function __call($func, $args)
+    {
         $thisclass = get_called_class();
-        if(preg_match('/get([a-zA-Z0-9_]+)/', $func)) {
+        if (preg_match('/get([a-zA-Z0-9_]+)/', $func)) {
             $model = preg_replace('/get([a-zA-Z0-9_]+)/', '$1', $func);
             $data = Model::_getModelsGlobalData();
-            if(isset($data->$thisclass)) {
-                if(isset($data->$thisclass->many) && isset($data->$thisclass->many[$model])) {
-                    if(!is_array($args)) {
+            if (isset($data->$thisclass)) {
+                if (isset($data->$thisclass->many) && isset($data->$thisclass->many[$model])) {
+                    if (!is_array($args)) {
                         return false;
                     }
-                    if(isset($args[0][0])) {
-                        $args[0][0] .= ' AND ' . $data->$thisclass->many[$model][1] .' = :'.$data->$thisclass->many[$model][1];
+                    if (isset($args[0][0])) {
+                        $args[0][0] .= ' AND '
+                            . $data->$thisclass->many[$model][1]
+                            .' = :'.$data->$thisclass->many[$model][1];
                     } else {
-                        $args[0][0] = $data->$thisclass->many[$model][1] .' = :'.$data->$thisclass->many[$model][1];
+                        $args[0][0] = $data->$thisclass->many[$model][1]
+                            .' = :'.$data->$thisclass->many[$model][1];
                     }
-                    if(isset($args[0]['bind'])) {
-                        $args[0]['bind'][$data->$thisclass->many[$model][1]] = $this->{$data->$thisclass->many[$model][0]};
+                    if (isset($args[0]['bind'])) {
+                        $args[0]['bind'][$data->$thisclass->many[$model][1]]
+                            = $this->{$data->$thisclass->many[$model][0]};
                     } else {
-                        $args[0]['bind'] = array($data->$thisclass->many[$model][1] => $this->{$data->$thisclass->many[$model][0]});
+                        $args[0]['bind'] = array(
+                            $data->$thisclass->many[$model][1] => $this->{$data->$thisclass->many[$model][0]}
+                        );
                     }
                     return $model::find($args[0]);
 
                 } elseif (isset($data->$thisclass->one) && isset($data->$thisclass->one[$model])) {
-
-                    if(!is_array($args)) {
+                    if (!is_array($args)) {
                         return false;
                     }
-
-                    if(isset($args[0][0])) {
-                        $args[0][0] .= ' AND ' . $data->$thisclass->one[$model][1] .' = :'.$data->$thisclass->one[$model][1];
+                    if (isset($args[0][0])) {
+                        $args[0][0] .= ' AND '
+                            . $data->$thisclass->one[$model][1]
+                            .' = :'.$data->$thisclass->one[$model][1];
                     } else {
-                        $args[0][0] = $data->$thisclass->one[$model][1] .' = :'.$data->$thisclass->one[$model][1];
+                        $args[0][0] = $data->$thisclass->one[$model][1]
+                            .' = :'.$data->$thisclass->one[$model][1];
                     }
 
-                    if(isset($args[0]['bind'])) {
-                        $args[0]['bind'][$data->$thisclass->one[$model][1]] = $this->{$data->$thisclass->one[$model][0]};
+                    if (isset($args[0]['bind'])) {
+                        $args[0]['bind'][$data->$thisclass->one[$model][1]]
+                            = $this->{$data->$thisclass->one[$model][0]};
                     } else {
-                        $args[0]['bind'] = array($data->$thisclass->one[$model][1] => $this->{$data->$thisclass->one[$model][0]});
+                        $args[0]['bind'] = array(
+                            $data->$thisclass->one[$model][1] => $this->{$data->$thisclass->one[$model][0]}
+                        );
                     }
-
                     return $model::findFirst($args[0]);
                 }
             }
