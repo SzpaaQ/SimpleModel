@@ -302,13 +302,10 @@ class Model
                 return true;
             } else {
                 Model::$errors[] = $sql->errorInfo();
-                if (property_exists(Model::_getModelsGlobalData(), 'transaction') && Model::_getModelsGlobalData()->transation === true)
-                {
+                if (property_exists(Model::_getModelsGlobalData(), 'transaction') && Model::_getModelsGlobalData()->transation === true) {
                     Model::_getModelsGlobalData()->transation_error = true;
                 }
-                Model::_getModelsGlobalData()->transation_error = true;
-
-                return $sql->errorInfo();
+                return false;
             }
         } else {
             //insert
