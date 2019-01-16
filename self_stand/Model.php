@@ -9,6 +9,7 @@ class Model
 {
     public static $data = false;
     public static $pref = '';
+    public static $errors = array();
     public function __construct(int $id = null) {
         self::initModelsData();
         if(null !== $id) {
@@ -47,9 +48,10 @@ class Model
         Model::_getModelsGlobalData()->transation = false;
         if (Model::_getModelsGlobalData()->transation_error !== false) {
             Model::_getModelsGlobalData()->transation_error = false;
-            return self::_getDB()->rollback();
+            self::_getDB()->rollback();
+            return false;
         } else {
-            return self::_getDB()->commit();
+            return (bool) self::_getDB()->commit();
         }
     }
     public function hasOne(string $fieldHere, string $model, string $fieldThere = null) {
@@ -59,7 +61,10 @@ class Model
         Model::_getModelsGlobalData()
         ->{get_called_class()}->one[$model] = array($fieldHere, $fieldThere);
     }
-
+    public static function getErrors()
+    {
+        return Model::$errors;
+    }
     public static function find( $array = null) {
         $class = get_called_class();
         if(is_numeric($array)) {
@@ -278,7 +283,7 @@ class Model
             $query = 'UPDATE '. $this->getSource() .' SET ' . implode(',', $query) .' WHERE '. $this->getSchema()->auto_increment .' = ?';
             $use = $this;
             $bind = array_map(function($key) use($use){
-                if($key == 'date_add') {
+                if($key == 'date_update') {
                     return isset($use->$key) ? $use->$key : date('Y-m-d H:i:s');
                 }
                 return isset($use->$key) ? $use->$key : null;
@@ -294,8 +299,9 @@ class Model
             }
 
             if($sql->execute($bind)){
-                return Model::_getDB()->lastInsertId();
+                return true;
             } else {
+                Model::$errors[] = $sql->errorInfo();
                 if (property_exists(Model::_getModelsGlobalData(), 'transaction') && Model::_getModelsGlobalData()->transation === true)
                 {
                     Model::_getModelsGlobalData()->transation_error = true;
@@ -310,6 +316,9 @@ class Model
             $use = $this;
             $bind = array_map(function($key) use($use){
                 if($key == 'date_add') {
+                    return isset($use->$key) ? $use->$key : date('Y-m-d H:i:s');
+                }
+                if($key == 'date_update') {
                     return isset($use->$key) ? $use->$key : date('Y-m-d H:i:s');
                 }
                 return isset($use->$key) ? $use->$key : null;
@@ -327,9 +336,9 @@ class Model
                 return $this->{$this->getSchema()->auto_increment};
             }
             else{
+                Model::$errors[] = $sql->errorInfo();
                 Model::_getModelsGlobalData()->transation_error = true;
-
-                return $sql->errorInfo();
+                return false;
             }
         }
     }

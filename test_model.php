@@ -32,6 +32,6 @@ Model::transaction();
 $user = Users::findFirst(2);
 $task = new Task;
 $task->save();
-$user -> username = 'SzpaQ';
+$user -> username = 'SzpaQQ';
 $user->save();
 Model::commit(); // Transaction won't be committed since task wont be save. It suppose to have few properties like user_id, name
